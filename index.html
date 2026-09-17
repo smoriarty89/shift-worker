@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shift Worker</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; min-height: 100vh; color: #1a1a18; }
+.screen { display: none; padding: 1.25rem; min-height: 100vh; }
+.screen.active { display: flex; flex-direction: column; }
+.logo-eyebrow { font-size: 12px; color: #888; font-style: italic; margin-bottom: 2px; }
+.logo { font-size: 26px; font-weight: 700; color: #1a1a18; margin-bottom: 0.25rem; }
+.logo span { color: #1D9E75; }
+.tagline { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
+.btn { display: block; width: 100%; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; text-align: center; transition: opacity 0.15s; }
+.btn:active { opacity: 0.8; }
+.btn-primary { background: #1D9E75; color: #fff; }
+.btn-secondary { background: #fff; color: #1a1a18; border: 1px solid #ddd; margin-top: 0.75rem; }
+.btn-ghost { background: transparent; color: #1D9E75; border: 1px solid #1D9E75; margin-top: 0.75rem; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.input { display: block; width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #ddd; background: #fff; font-size: 15px; color: #1a1a18; outline: none; }
+.input:focus { border-color: #1D9E75; box-shadow: 0 0 0 3px #1D9E7520; }
+label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; margin-top: 1rem; }
+.card { background: #fff; border-radius: 12px; border: 1px solid #e5e5e0; padding: 1rem 1.25rem; margin-bottom: 0.75rem; cursor: pointer; }
+.card:active { background: #f9f9f7; }
+.card-title { font-size: 15px; font-weight: 600; }
+.card-sub { font-size: 12px; color: #888; margin-top: 2px; }
+.section-title { font-size: 11px; font-weight: 600; color: #aaa; text-transform: uppercase; letter-spacing: 0.05em; margin: 1.25rem 0 0.5rem; }
+.back-btn { display: flex; align-items: center; gap: 6px; font-size: 14px; color: #1D9E75; background: none; border: none; cursor: pointer; padding: 0; margin-bottom: 1rem; }
+.member-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f0ee; }
+.member-row:last-child { border-bottom: none; }
+.avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+.member-name { font-size: 14px; flex: 1; }
+.member-status { font-size: 11px; padding: 3px 8px; border-radius: 20px; font-weight: 500; }
+.status-done { background: #E1F5EE; color: #0F6E56; }
+.status-pending { background: #f0f0ee; color: #aaa; }
+.best-days { display: flex; flex-direction: column; gap: 8px; margin: 0.75rem 0; }
+.best-day-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: 1px solid #e5e5e0; background: #fff; }
+.best-day-count { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 500; white-space: nowrap; }
+.upload-area { border: 2px dashed #1D9E75; border-radius: 12px; padding: 2rem 1rem; text-align: center; background: #F0FAF6; cursor: pointer; }
+.upload-area:active { background: #E1F5EE; }
+.error { font-size: 12px; color: #c0392b; margin-top: 6px; display: none; }
+.status-msg { font-size: 13px; color: #0F6E56; background: #E1F5EE; border-radius: 8px; padding: 10px 14px; margin-top: 10px; display: none; }
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff4; border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+.spinner-green { border-color: #1D9E7530; border-top-color: #1D9E75; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.tab-bar { display: flex; border-bottom: 1px solid #e5e5e0; margin-bottom: 1rem; }
+.tab { flex: 1; padding: 10px; text-align: center; font-size: 13px; cursor: pointer; color: #888; border-bottom: 2px solid transparent; background: none; border-left: none; border-right: none; border-top: none; font-weight: 500; }
+.tab.active { color: #1D9E75; border-bottom-color: #1D9E75; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #0F6E56; color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap; z-index: 999; }
+.toast.show { opacity: 1; }
+.clarify-box { background: #FFF8E7; border: 1px solid #FAC775; border-radius: 10px; padding: 12px; margin: 0.75rem 0; }
+.clarify-label { font-size: 12px; color: #854F0B; font-weight: 600; margin-bottom: 6px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 0.5rem 0; }
+.cal-day-label { font-size: 10px; color: #aaa; text-align: center; padding: 2px 0; font-weight: 600; }
+.cal-day { aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; background: #f0f0ee; color: #aaa; }
+.cal-day.free { background: #E1F5EE; color: #0F6E56; cursor: pointer; }
+.cal-day.free:active { background: #9FE1CB; }
+.cal-day.busy { background: #f0f0ee; color: #ccc; }
+.cal-day.extra-busy { background: #FAECE7; color: #993C1D; cursor: pointer; }
+.cal-day.empty { background: transparent; }
+.group-code-display { font-family: monospace; font-size: 15px; font-weight: 700; color: #1D9E75; background: #E1F5EE; padding: 3px 10px; border-radius: 8px; }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<div id="screen-home" class="screen active">
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+    <div class="logo-eyebrow">so you're friends with a</div>
+    <div class="logo">Shift <span>Worker</span></div>
+    <div class="tagline">Find days that work for everyone</div>
+    <div id="groups-list"></div>
+    <div id="groups-empty" style="text-align:center;padding:3rem 1rem;color:#aaa;display:none">
+      <div style="font-size:40px;margin-bottom:12px">📅</div>
+      <div style="font-size:15px;font-weight:600;color:#888">No groups yet</div>
+      <div style="font-size:13px;margin-top:6px">Create one or join with a code</div>
+    </div>
+  </div>
+  <div>
+    <button class="btn btn-primary" onclick="showScreen('screen-create')">Create a group</button>
+    <button class="btn btn-secondary" onclick="showScreen('screen-join')">Join with a code</button>
+  </div>
+</div>
+
+<!-- CREATE GROUP -->
+<div id="screen-create" class="screen">
+  <button class="back-btn" onclick="showScreen('screen-home')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>
+    Back
+  </button>
+  <div class="logo-eyebrow">so you're friends with a</div>
+  <div class="logo">Shift <span>Worker</span></div>
+  <div class="tagline">Give your group a name</div>
+  <label>Group name</label>
+  <input class="input" id="group-name-input" placeholder="e.g. Work friends, Golden friends" maxlength="40">
+  <div class="error" id="create-name-error">Enter a group name</div>
+  <label>Your name</label>
+  <input class="input" id="creator-name-input" placeholder="Your name" maxlength="30">
+  <div class="error" id="create-creator-error">Enter your name</div>
+  <div style="flex:1"></div>
+  <button class="btn btn-primary" onclick="createGroup()" id="create-btn" style="margin-top:2rem">Create group</button>
+</div>
+
+<!-- JOIN GROUP -->
+<div id="screen-join" class="screen">
+  <button class="back-btn" onclick="showScreen('screen-home')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>
+    Back
+  </button>
+  <div class="logo-eyebrow">so you're friends with a</div>
+  <div class="logo">Shift <span>Worker</span></div>
+  <div class="tagline">Enter the code your friend shared</div>
+  <label>Group code</label>
+  <input class="input" id="join-code-input" placeholder="e.g. PURP42" maxlength="8" style="text-transform:uppercase;letter-spacing:0.1em;font-size:20px;font-weight:600">
+  <div class="error" id="join-code-error">Group not found. Check the code.</div>
+  <label>Your name</label>
+  <input class="input" id="join-name-input" placeholder="Your name" maxlength="30">
+  <div class="error" id="join-name-error">Enter your name</div>
+  <div style="flex:1"></div>
+  <button class="btn btn-primary" onclick="joinGroup()" id="join-btn" style="margin-top:2rem">Join group</button>
+</div>
+
+<!-- GROUP DETAIL -->
+<div id="screen-group" class="screen">
+  <button class="back-btn" onclick="goHome()">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>
+    Back
+  </button>
+  <div class="logo" id="group-detail-name" style="margin-bottom:0.25rem;font-size:20px"></div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">
+    <span style="font-size:12px;color:#888">Code:</span>
+    <span class="group-code-display" id="group-detail-code"></span>
+    <button onclick="copyCode()" style="font-size:12px;color:#1D9E75;background:none;border:none;cursor:pointer;font-weight:500">Copy</button>
+  </div>
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('members')" id="tab-members">Members</button>
+    <button class="tab" onclick="switchTab('results')" id="tab-results">Results</button>
+  </div>
+  <div id="tab-content-members">
+    <div class="section-title">Members</div>
+    <div id="members-list"></div>
+    <button class="btn btn-ghost" onclick="showScreen('screen-upload')" style="margin-top:1rem" id="upload-my-btn">Upload my availability</button>
+  </div>
+  <div id="tab-content-results" style="display:none">
+    <div id="results-content"></div>
+  </div>
+</div>
+
+<!-- UPLOAD -->
+<div id="screen-upload" class="screen">
+  <button class="back-btn" onclick="showScreen('screen-group')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>
+    Back
+  </button>
+  <div class="logo-eyebrow">so you're friends with a</div>
+  <div class="logo">Shift <span>Worker</span></div>
+  <div class="tagline">Upload your roster or calendar</div>
+
+  <div class="upload-area" onclick="document.getElementById('file-input').click()">
+    <div style="font-size:32px;margin-bottom:8px">📸</div>
+    <div style="font-size:14px;color:#0F6E56;font-weight:600">Tap to upload screenshot</div>
+    <div style="font-size:12px;color:#1D9E75;margin-top:4px">Roster, calendar, any format</div>
+  </div>
+  <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
+
+  <div id="preview-container" style="display:none;margin-top:0.75rem">
+    <img id="preview-img" style="width:100%;border-radius:10px;max-height:180px;object-fit:cover">
+    <div style="font-size:12px;color:#1D9E75;margin-top:4px;text-align:center;font-weight:500">Screenshot selected</div>
+  </div>
+
+  <div id="clarify-container" class="clarify-box" style="display:none">
+    <div class="clarify-label">The AI needs a bit more info</div>
+    <div id="clarify-question" style="font-size:13px;color:#633806;margin-bottom:8px"></div>
+    <textarea class="input" id="clarify-answer" rows="3" placeholder="e.g. SDO = day off, moon = night shift, sun = day shift, AD = annual leave..."></textarea>
+  </div>
+
+  <div id="extracted-preview" style="display:none;margin-top:0.75rem"></div>
+  <div class="status-msg" id="status-msg"></div>
+
+  <div style="flex:1"></div>
+  <button class="btn btn-primary" id="process-btn" onclick="processUpload()" style="margin-top:1rem" disabled>Extract my availability</button>
+  <div class="error" id="upload-error" style="text-align:center;margin-top:8px"></div>
+</div>
+
+<!-- EXTRA BUSY DAYS -->
+<div id="screen-extra-busy" class="screen">
+  <button class="back-btn" onclick="showScreen('screen-upload')">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3L5 8l5 5"/></svg>
+    Back
+  </button>
+  <div class="logo" style="margin-bottom:0.25rem">Any other plans?</div>
+  <div class="tagline">Tap any green day to mark it busy - appointments, events, anything else making you unavailable.</div>
+  <div id="extra-busy-cal"></div>
+  <div id="extra-busy-added" style="display:none;margin-bottom:0.75rem">
+    <div class="section-title">Also busy on</div>
+    <div id="extra-busy-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+  </div>
+  <div style="flex:1"></div>
+  <button class="btn btn-primary" onclick="saveAvailability()" id="save-btn" style="margin-top:1rem">Save my availability</button>
+</div>
+
+<!-- SUCCESS -->
+<div id="screen-created" class="screen">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1rem">
+    <div style="font-size:48px;margin-bottom:1rem">🎉</div>
+    <div class="logo-eyebrow">so you're friends with a</div>
+    <div class="logo">Shift <span>Worker</span></div>
+    <div style="font-size:18px;font-weight:600;margin-top:0.5rem">Group created!</div>
+    <div class="tagline" style="margin-top:0.5rem">Share this code with your friends</div>
+    <div style="font-family:monospace;font-size:36px;font-weight:700;color:#1D9E75;background:#E1F5EE;padding:1rem 2rem;border-radius:14px;margin:1rem 0;letter-spacing:0.15em" id="success-code"></div>
+    <div style="font-size:13px;color:#888">They enter this code to join and add their availability</div>
+    <button class="btn btn-primary" onclick="copySuccessCode()" style="margin-top:1.5rem;width:auto;padding:12px 2rem">Copy code</button>
+  </div>
+  <button class="btn btn-secondary" onclick="goToGroup()">Open my group</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_BASE = '/api';
+let currentGroup = null;
+let currentMember = null;
+let selectedFile = null;
+let extractedDays = null;
+let extraBusyDays = new Set();
+let clarifyMode = false;
+const COLORS = ['#1D9E75','#534AB7','#D85A30','#185FA5','#BA7517','#993556','#639922'];
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function setStatus(msg) {
+  const el = document.getElementById('status-msg');
+  if (msg) { el.innerHTML = '<span class="spinner spinner-green"></span>' + msg; el.style.display = ''; }
+  else { el.style.display = 'none'; }
+}
+
+function genCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let c = '';
+  for (let i=0;i<6;i++) c += chars[Math.floor(Math.random()*chars.length)];
+  return c;
+}
+
+function initials(name) {
+  return name.trim().split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2);
+}
+
+function avatarColor(name) {
+  let h = 0;
+  for (let c of name) h = ((h<<5)-h)+c.charCodeAt(0);
+  return COLORS[Math.abs(h)%COLORS.length];
+}
+
+function getMyGroups() {
+  return JSON.parse(localStorage.getItem('sw_groups')||'[]');
+}
+
+function saveMyGroups(groups) {
+  localStorage.setItem('sw_groups', JSON.stringify(groups));
+}
+
+async function loadGroups() {
+  const saved = getMyGroups();
+  const list = document.getElementById('groups-list');
+  const empty = document.getElementById('groups-empty');
+  list.innerHTML = '';
+  if (saved.length === 0) { empty.style.display = ''; return; }
+  empty.style.display = 'none';
+  const st = document.createElement('div');
+  st.className = 'section-title';
+  st.textContent = 'Your groups';
+  list.appendChild(st);
+  for (const g of saved) {
+    let memberCount = 0;
+    try {
+      const res = await fetch(`${API_BASE}/group?code=${g.code}`);
+      if (res.ok) { const data = await res.json(); memberCount = data.memberCount || 0; }
+    } catch(e) {}
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<div class="card-title">${g.name}</div><div class="card-sub">${memberCount} member${memberCount!==1?'s':''} · Code: ${g.code}</div>`;
+    card.onclick = () => openGroup(g.code, g.name, g.memberName);
+    list.appendChild(card);
+  }
+}
+
+async function createGroup() {
+  const nameEl = document.getElementById('group-name-input');
+  const creatorEl = document.getElementById('creator-name-input');
+  document.getElementById('create-name-error').style.display = 'none';
+  document.getElementById('create-creator-error').style.display = 'none';
+  if (!nameEl.value.trim()) { document.getElementById('create-name-error').style.display = ''; return; }
+  if (!creatorEl.value.trim()) { document.getElementById('create-creator-error').style.display = ''; return; }
+  const btn = document.getElementById('create-btn');
+  btn.innerHTML = '<span class="spinner"></span>Creating...';
+  btn.disabled = true;
+  const code = genCode();
+  const groupName = nameEl.value.trim();
+  const memberName = creatorEl.value.trim();
+  try {
+    const res = await fetch(`${API_BASE}/group`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, name: groupName, memberName })
+    });
+    if (!res.ok) throw new Error('Failed');
+    const groups = getMyGroups();
+    groups.push({ code, name: groupName, memberName });
+    saveMyGroups(groups);
+    document.getElementById('success-code').textContent = code;
+    currentGroup = { code, name: groupName };
+    currentMember = memberName;
+    showScreen('screen-created');
+    nameEl.value = ''; creatorEl.value = '';
+  } catch(e) { showToast('Something went wrong. Try again.'); }
+  btn.innerHTML = 'Create group';
+  btn.disabled = false;
+}
+
+async function joinGroup() {
+  const codeEl = document.getElementById('join-code-input');
+  const nameEl = document.getElementById('join-name-input');
+  document.getElementById('join-code-error').style.display = 'none';
+  document.getElementById('join-name-error').style.display = 'none';
+  const code = codeEl.value.trim().toUpperCase();
+  const memberName = nameEl.value.trim();
+  if (!code) { document.getElementById('join-code-error').style.display = ''; return; }
+  if (!memberName) { document.getElementById('join-name-error').style.display = ''; return; }
+  const btn = document.getElementById('join-btn');
+  btn.innerHTML = '<span class="spinner"></span>Joining...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, memberName })
+    });
+    if (res.status === 404) { document.getElementById('join-code-error').style.display = ''; btn.innerHTML='Join group'; btn.disabled=false; return; }
+    if (!res.ok) throw new Error('Failed');
+    const data = await res.json();
+    const groups = getMyGroups();
+    if (!groups.find(g=>g.code===code&&g.memberName===memberName)) {
+      groups.push({ code, name: data.groupName, memberName });
+      saveMyGroups(groups);
+    }
+    currentGroup = { code, name: data.groupName };
+    currentMember = memberName;
+    openGroup(code, data.groupName, memberName);
+    codeEl.value = ''; nameEl.value = '';
+  } catch(e) { showToast('Something went wrong. Try again.'); }
+  btn.innerHTML = 'Join group';
+  btn.disabled = false;
+}
+
+async function openGroup(code, name, memberName) {
+  currentGroup = { code, name };
+  currentMember = memberName;
+  document.getElementById('group-detail-name').textContent = name;
+  document.getElementById('group-detail-code').textContent = code;
+  showScreen('screen-group');
+  switchTab('members');
+  loadMembers();
+}
+
+async function loadMembers() {
+  const list = document.getElementById('members-list');
+  list.innerHTML = '<div style="color:#aaa;font-size:13px;padding:12px 0"><span class="spinner spinner-green"></span>Loading...</div>';
+  try {
+    const res = await fetch(`${API_BASE}/members?code=${currentGroup.code}`);
+    const data = await res.json();
+    list.innerHTML = '';
+    let myHasAvail = false;
+    data.members.forEach(m => {
+      const color = avatarColor(m.name);
+      const row = document.createElement('div');
+      row.className = 'member-row';
+      row.innerHTML = `<div class="avatar" style="background:${color}22;color:${color}">${initials(m.name)}</div><div class="member-name">${m.name}${m.name===currentMember?' (you)':''}</div><div class="member-status ${m.hasAvailability?'status-done':'status-pending'}">${m.hasAvailability?'Ready':'Pending'}</div>`;
+      list.appendChild(row);
+      if (m.name===currentMember && m.hasAvailability) myHasAvail = true;
+    });
+    document.getElementById('upload-my-btn').textContent = myHasAvail ? 'Update my availability' : 'Upload my availability';
+  } catch(e) { list.innerHTML = '<div style="color:#c0392b;font-size:13px">Could not load members.</div>'; }
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-members').className = 'tab'+(tab==='members'?' active':'');
+  document.getElementById('tab-results').className = 'tab'+(tab==='results'?' active':'');
+  document.getElementById('tab-content-members').style.display = tab==='members'?'':'none';
+  document.getElementById('tab-content-results').style.display = tab==='results'?'':'none';
+  if (tab==='results') loadResults();
+}
+
+async function loadResults() {
+  const cont = document.getElementById('results-content');
+  cont.innerHTML = '<div style="color:#aaa;font-size:13px;padding:1rem 0"><span class="spinner spinner-green"></span>Calculating...</div>';
+  try {
+    const res = await fetch(`${API_BASE}/results?code=${currentGroup.code}`);
+    const data = await res.json();
+    if (data.needsMore) { cont.innerHTML = '<div style="text-align:center;padding:2rem 0;color:#888"><div style="font-size:32px;margin-bottom:8px">⏳</div><div style="font-size:14px">Waiting for at least 2 members to upload availability</div></div>'; return; }
+    let html = '';
+    if (data.allFree.length > 0) {
+      html += '<div class="section-title">Everyone is free</div><div class="best-days">';
+      data.allFree.forEach(item => {
+        const d = new Date(item.date+'T12:00:00');
+        html += `<div class="best-day-row"><div style="width:40px;height:40px;background:#E1F5EE;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0"><div style="font-size:10px;color:#0F6E56;font-weight:600">${d.toLocaleDateString('en-AU',{weekday:'short'})}</div><div style="font-size:16px;color:#085041;font-weight:700">${d.getDate()}</div></div><div style="flex:1"><div style="font-size:14px;font-weight:600">${d.toLocaleDateString('en-AU',{day:'numeric',month:'long'})}</div><div style="font-size:12px;color:#888">${item.count} of ${data.total} free</div></div><div class="best-day-count" style="background:#E1F5EE;color:#0F6E56">All free ✓</div></div>`;
+      });
+      html += '</div>';
+    }
+    if (data.partial.length > 0) {
+      html += '<div class="section-title">Other good days</div><div class="best-days">';
+      data.partial.forEach(item => {
+        const d = new Date(item.date+'T12:00:00');
+        const pct = item.count/data.total;
+        const bg = pct>=0.8?'#9FE1CB':pct>=0.6?'#C6EDE0':'#E1F5EE';
+        html += `<div class="best-day-row"><div style="width:40px;height:40px;background:${bg};border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0"><div style="font-size:10px;color:#0F6E56;font-weight:600">${d.toLocaleDateString('en-AU',{weekday:'short'})}</div><div style="font-size:16px;color:#0F6E56;font-weight:700">${d.getDate()}</div></div><div style="flex:1"><div style="font-size:14px;font-weight:600">${d.toLocaleDateString('en-AU',{day:'numeric',month:'long'})}</div><div style="font-size:11px;color:#aaa">Can't make it: ${item.missing.join(', ')}</div></div><div class="best-day-count" style="background:${bg};color:#0F6E56">${item.count}/${data.total}</div></div>`;
+      });
+      html += '</div>';
+    }
+    if (!data.allFree.length && !data.partial.length) html = '<div style="text-align:center;padding:2rem;color:#888">No overlapping free days found yet.</div>';
+    cont.innerHTML = html;
+  } catch(e) { cont.innerHTML = '<div style="color:#c0392b;font-size:13px">Could not load results.</div>'; }
+}
+
+function copyCode() { navigator.clipboard.writeText(currentGroup.code).then(()=>showToast('Code copied!')); }
+function copySuccessCode() { navigator.clipboard.writeText(document.getElementById('success-code').textContent).then(()=>showToast('Code copied!')); }
+function goToGroup() { openGroup(currentGroup.code, currentGroup.name, currentMember); }
+function goHome() { loadGroups(); showScreen('screen-home'); }
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  selectedFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    document.getElementById('preview-img').src = ev.target.result;
+    document.getElementById('preview-container').style.display = '';
+    document.getElementById('process-btn').disabled = false;
+    document.getElementById('clarify-container').style.display = 'none';
+    document.getElementById('extracted-preview').style.display = 'none';
+    document.getElementById('status-msg').style.display = 'none';
+    document.getElementById('upload-error').style.display = 'none';
+    extractedDays = null; clarifyMode = false;
+    document.getElementById('process-btn').textContent = 'Extract my availability';
+    document.getElementById('process-btn').onclick = processUpload;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function processUpload() {
+  if (!selectedFile) return;
+  const btn = document.getElementById('process-btn');
+  const errEl = document.getElementById('upload-error');
+  errEl.style.display = 'none';
+  btn.innerHTML = '<span class="spinner"></span>Analysing roster...';
+  btn.disabled = true;
+  setStatus('Reading your roster... this takes about 15 seconds');
+  try {
+    const base64 = await new Promise((res,rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = () => rej(new Error('Read failed'));
+      r.readAsDataURL(selectedFile);
+    });
+    const clarifyAnswer = clarifyMode ? document.getElementById('clarify-answer').value.trim() : '';
+    const res = await fetch(`${API_BASE}/scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: base64, mediaType: selectedFile.type||'image/jpeg', clarifyAnswer })
+    });
+    setStatus('');
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.error||'Server error'); }
+    const result = await res.json();
+    if (result.needsClarification && !clarifyMode) {
+      document.getElementById('clarify-question').textContent = result.clarifyQuestion || 'What do the symbols in your roster mean?';
+      document.getElementById('clarify-container').style.display = '';
+      clarifyMode = true;
+      btn.innerHTML = 'Submit with explanation';
+      btn.onclick = processUpload;
+      btn.disabled = false;
+      return;
+    }
+    extractedDays = result.freeDays || [];
+    if (extractedDays.length === 0) {
+      errEl.textContent = 'No free days found. Explain your roster symbols below.';
+      errEl.style.display = '';
+      document.getElementById('clarify-question').textContent = 'What do the symbols in your roster mean?';
+      document.getElementById('clarify-container').style.display = '';
+      clarifyMode = true;
+      btn.innerHTML = 'Submit with explanation';
+      btn.onclick = processUpload;
+      btn.disabled = false;
+      return;
+    }
+    showExtractedPreview(extractedDays, result.month);
+    btn.innerHTML = 'Looks right - check extra plans';
+    btn.onclick = showExtraBusy;
+    btn.disabled = false;
+  } catch(e) {
+    setStatus('');
+    errEl.textContent = 'Error: ' + (e.message||'Something went wrong. Try again.');
+    errEl.style.display = '';
+    btn.innerHTML = 'Extract my availability';
+    btn.onclick = processUpload;
+    btn.disabled = false;
+  }
+}
+
+function showExtractedPreview(days, month) {
+  const cont = document.getElementById('extracted-preview');
+  let html = `<div class="card" style="cursor:default"><div style="font-size:13px;color:#0F6E56;font-weight:600;margin-bottom:8px">Found ${days.length} free day${days.length!==1?'s':''} ${month?'in '+month:''}</div><div style="display:flex;flex-wrap:wrap;gap:6px;">`;
+  days.slice(0,20).forEach(d => {
+    const dt = new Date(d+'T12:00:00');
+    html += `<div style="background:#E1F5EE;color:#0F6E56;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500">${dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'})}</div>`;
+  });
+  if (days.length > 20) html += `<div style="font-size:12px;color:#aaa;padding:4px">+${days.length-20} more</div>`;
+  html += '</div></div>';
+  cont.innerHTML = html; cont.style.display = '';
+}
+
+function showExtraBusy() {
+  extraBusyDays = new Set();
+  buildExtraBusyCal();
+  showScreen('screen-extra-busy');
+}
+
+function buildExtraBusyCal() {
+  if (!extractedDays || !extractedDays.length) return;
+  const freeDates = new Set(extractedDays);
+  const months = {};
+  extractedDays.forEach(d => {
+    const [y,m] = d.split('-');
+    const key = y+'-'+m;
+    if (!months[key]) months[key] = { year: parseInt(y), month: parseInt(m)-1 };
+  });
+  let html = '';
+  Object.values(months).sort((a,b)=>a.year-b.year||a.month-b.month).forEach(({year,month}) => {
+    const monthName = new Date(year,month,1).toLocaleDateString('en-AU',{month:'long',year:'numeric'});
+    const firstDay = new Date(year,month,1).getDay();
+    const offset = firstDay===0?6:firstDay-1;
+    const daysInMonth = new Date(year,month+1,0).getDate();
+    html += `<div class="section-title">${monthName}</div><div class="cal-grid">`;
+    ['M','T','W','T','F','S','S'].forEach(d => html += `<div class="cal-day-label">${d}</div>`);
+    for (let i=0;i<offset;i++) html += '<div class="cal-day empty"></div>';
+    for (let day=1;day<=daysInMonth;day++) {
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      const isFree = freeDates.has(dateStr);
+      const isExtraBusy = extraBusyDays.has(dateStr);
+      const cls = isExtraBusy?'extra-busy':isFree?'free':'busy';
+      const click = isFree?`onclick="toggleExtraBusy('${dateStr}',this)"`:'';
+      html += `<div class="cal-day ${cls}" data-date="${dateStr}" ${click}>${day}</div>`;
+    }
+    html += '</div>';
+  });
+  document.getElementById('extra-busy-cal').innerHTML = html;
+  updateExtraBusyList();
+}
+
+function toggleExtraBusy(dateStr, el) {
+  if (extraBusyDays.has(dateStr)) { extraBusyDays.delete(dateStr); el.className='cal-day free'; }
+  else { extraBusyDays.add(dateStr); el.className='cal-day extra-busy'; }
+  updateExtraBusyList();
+}
+
+function updateExtraBusyList() {
+  const cont = document.getElementById('extra-busy-added');
+  const list = document.getElementById('extra-busy-list');
+  if (extraBusyDays.size===0) { cont.style.display='none'; return; }
+  cont.style.display='';
+  list.innerHTML='';
+  [...extraBusyDays].sort().forEach(d => {
+    const dt = new Date(d+'T12:00:00');
+    const tag = document.createElement('div');
+    tag.style.cssText='background:#FAECE7;color:#993C1D;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500';
+    tag.textContent = dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+    list.appendChild(tag);
+  });
+}
+
+async function saveAvailability() {
+  if (!extractedDays||!currentGroup||!currentMember) return;
+  const finalDays = extractedDays.filter(d=>!extraBusyDays.has(d));
+  const btn = document.getElementById('save-btn');
+  btn.innerHTML = '<span class="spinner"></span>Saving...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/availability`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: currentGroup.code, memberName: currentMember, availability: finalDays })
+    });
+    if (!res.ok) throw new Error('Failed');
+    showToast('Availability saved!');
+    showScreen('screen-group');
+    loadMembers();
+    selectedFile=null; extractedDays=null; extraBusyDays=new Set(); clarifyMode=false;
+    document.getElementById('preview-container').style.display='none';
+    document.getElementById('clarify-container').style.display='none';
+    document.getElementById('extracted-preview').style.display='none';
+    document.getElementById('status-msg').style.display='none';
+    document.getElementById('process-btn').textContent='Extract my availability';
+    document.getElementById('process-btn').onclick=processUpload;
+    document.getElementById('process-btn').disabled=true;
+  } catch(e) {
+    showToast('Could not save. Try again.');
+    btn.innerHTML='Save my availability';
+    btn.disabled=false;
+  }
+}
+
+loadGroups();
+</script>
+</body>
+</html>
