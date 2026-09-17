@@ -100,6 +100,9 @@ label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; margin
   <label>Your name</label>
   <input class="input" id="creator-name-input" placeholder="Your name" maxlength="30">
   <div class="error" id="create-creator-error">Enter your name</div>
+  <label>Custom group code (optional)</label>
+  <input class="input" id="group-code-input" placeholder="e.g. APPLE - leave blank for random" maxlength="8" style="text-transform:uppercase;letter-spacing:0.1em;font-size:18px;font-weight:600">
+  <div class="error" id="create-code-error">That code is already taken. Try another.</div>
   <div style="flex:1"></div>
   <button class="btn btn-primary" onclick="createGroup()" id="create-btn" style="margin-top:2rem">Create group</button>
 </div>
@@ -114,7 +117,7 @@ label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; margin
   <div class="logo">Shift <span>Worker</span></div>
   <div class="tagline">Enter the code your friend shared</div>
   <label>Group code</label>
-  <input class="input" id="join-code-input" placeholder="e.g. PURP42" maxlength="8" style="text-transform:uppercase;letter-spacing:0.1em;font-size:20px;font-weight:600">
+  <input class="input" id="join-code-input" placeholder="e.g. APPLE" maxlength="8" style="text-transform:uppercase;letter-spacing:0.1em;font-size:20px;font-weight:600">
   <div class="error" id="join-code-error">Group not found. Check the code.</div>
   <label>Your name</label>
   <input class="input" id="join-name-input" placeholder="Your name" maxlength="30">
@@ -195,7 +198,7 @@ label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; margin
   <div class="tagline">Tap a green day to mark it busy. Tap a grey day to make yourself free.</div>
   <div id="extra-busy-cal"></div>
   <div id="extra-busy-added" style="display:none;margin-bottom:0.75rem">
-    <div class="section-title">Also busy on</div>
+    <div class="section-title">Changes</div>
     <div id="extra-busy-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
   </div>
   <div style="flex:1"></div>
@@ -302,14 +305,17 @@ async function loadGroups() {
 async function createGroup() {
   const nameEl = document.getElementById('group-name-input');
   const creatorEl = document.getElementById('creator-name-input');
+  const codeEl = document.getElementById('group-code-input');
   document.getElementById('create-name-error').style.display = 'none';
   document.getElementById('create-creator-error').style.display = 'none';
+  document.getElementById('create-code-error').style.display = 'none';
   if (!nameEl.value.trim()) { document.getElementById('create-name-error').style.display = ''; return; }
   if (!creatorEl.value.trim()) { document.getElementById('create-creator-error').style.display = ''; return; }
   const btn = document.getElementById('create-btn');
   btn.innerHTML = '<span class="spinner"></span>Creating...';
   btn.disabled = true;
-  const code = genCode();
+  const customCode = codeEl.value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const code = customCode || genCode();
   const groupName = nameEl.value.trim();
   const memberName = creatorEl.value.trim();
   try {
@@ -318,6 +324,12 @@ async function createGroup() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, name: groupName, memberName })
     });
+    if (res.status === 409) {
+      document.getElementById('create-code-error').style.display = '';
+      btn.innerHTML = 'Create group';
+      btn.disabled = false;
+      return;
+    }
     if (!res.ok) throw new Error('Failed');
     const groups = getMyGroups();
     groups.push({ code, name: groupName, memberName });
@@ -326,7 +338,7 @@ async function createGroup() {
     currentGroup = { code, name: groupName };
     currentMember = memberName;
     showScreen('screen-created');
-    nameEl.value = ''; creatorEl.value = '';
+    nameEl.value = ''; creatorEl.value = ''; codeEl.value = '';
   } catch(e) { showToast('Something went wrong. Try again.'); }
   btn.innerHTML = 'Create group';
   btn.disabled = false;
@@ -542,15 +554,12 @@ function showExtraBusy() {
 function buildExtraBusyCal() {
   if (!extractedDays || !extractedDays.length) return;
   const freeDates = new Set(extractedDays);
-
-  // Get all days in the months covered
   const months = {};
   extractedDays.forEach(d => {
     const [y,m] = d.split('-');
     const key = y+'-'+m;
     if (!months[key]) months[key] = { year: parseInt(y), month: parseInt(m)-1 };
   });
-
   let html = '';
   Object.values(months).sort((a,b)=>a.year-b.year||a.month-b.month).forEach(({year,month}) => {
     const monthName = new Date(year,month,1).toLocaleDateString('en-AU',{month:'long',year:'numeric'});
@@ -563,8 +572,7 @@ function buildExtraBusyCal() {
     for (let day=1;day<=daysInMonth;day++) {
       const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
       const isFree = freeDates.has(dateStr);
-      const isExtraBusy = extraBusyDays.has(dateStr);
-      const cls = isExtraBusy ? 'extra-busy' : isFree ? 'free' : 'busy';
+      const cls = isFree ? 'free' : 'busy';
       html += `<div class="cal-day ${cls}" data-date="${dateStr}" onclick="toggleDay('${dateStr}',this)">${day}</div>`;
     }
     html += '</div>';
@@ -577,18 +585,14 @@ function toggleDay(dateStr, el) {
   const isFree = el.classList.contains('free');
   const isBusy = el.classList.contains('busy');
   const isExtraBusy = el.classList.contains('extra-busy');
-
   if (isFree) {
-    // Mark as busy
     extraBusyDays.add(dateStr);
     extraFreeDays.delete(dateStr);
     el.className = 'cal-day extra-busy';
   } else if (isExtraBusy) {
-    // Was originally free, marked busy - restore to free
     extraBusyDays.delete(dateStr);
     el.className = 'cal-day free';
   } else if (isBusy) {
-    // Was originally busy - make free
     extraFreeDays.add(dateStr);
     el.className = 'cal-day free';
   }
@@ -619,7 +623,6 @@ function updateExtraBusyList() {
 
 async function saveAvailability() {
   if (!extractedDays||!currentGroup||!currentMember) return;
-  // Start with extracted days, remove extra busy, add extra free
   const finalDays = [
     ...extractedDays.filter(d => !extraBusyDays.has(d)),
     ...[...extraFreeDays]
