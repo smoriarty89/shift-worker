@@ -1,3 +1,8 @@
+export const config = {
+  api: {
+    bodyParser: true
+  }
+};
 async function kvGet(key) {
   const res = await fetch(`${process.env.KV_REST_API_URL}/get/${encodeURIComponent(key)}`, {
     headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` }
