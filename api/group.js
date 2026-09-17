@@ -11,10 +11,12 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
       const { code, name, memberName } = req.body;
-      if (!code || !name || !memberName) return res.status(400).json({ error: 'Missing fields' });
-      const group = { code, name, created: Date.now(), members: { [memberName]: { name: memberName, joined: Date.now(), hasAvailability: false } } };
-      await kvSet(`group:${code}`, group);
-      return res.status(200).json({ code, name });
+      if (!code || !name || !memberName) return res.status(400).json({ error: 'Missing fields', got: { code, name, memberName } });
+      const members = {};
+      members[memberName] = { name: memberName, joined: Date.now(), hasAvailability: false };
+      const group = { code, name, created: Date.now(), members };
+      const ok = await kvSet(`group:${code}`, group);
+      return res.status(200).json({ code, name, saved: ok, memberCount: Object.keys(members).length });
     }
     if (req.method === 'GET') {
       const { code } = req.query;
