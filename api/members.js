@@ -1,7 +1,14 @@
 async function kvGet(key) {
-  const res = await fetch(`${process.env.KV_REST_API_URL}/get/${encodeURIComponent(key)}`, { headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` } });
+  const res = await fetch(`${process.env.KV_REST_API_URL}/get/${encodeURIComponent(key)}`, {
+    headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` }
+  });
   const data = await res.json();
-  return data.result ? JSON.parse(data.result) : null;
+  if (!data.result) return null;
+  try {
+    const first = JSON.parse(data.result);
+    if (typeof first === 'string') return JSON.parse(first);
+    return first;
+  } catch(e) { return null; }
 }
 export default async function handler(req, res) {
   try {
