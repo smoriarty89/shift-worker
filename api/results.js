@@ -4,10 +4,11 @@ async function kvGet(key) {
   });
   const data = await res.json();
   if (!data.result) return null;
-  let parsed = data.result;
-  if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-  if (typeof parsed === 'string') parsed = JSON.parse(parsed);
-  return parsed;
+  let result = data.result;
+  while (typeof result === 'string') {
+    try { result = JSON.parse(result); } catch(e) { break; }
+  }
+  return result;
 }
 export default async function handler(req, res) {
   try {
