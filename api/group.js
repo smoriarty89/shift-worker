@@ -4,8 +4,11 @@ async function kvGet(key) {
   });
   const data = await res.json();
   if (!data.result) return null;
-  if (typeof data.result === 'object') return data.result;
-  try { return JSON.parse(data.result); } catch(e) { return null; }
+  let result = data.result;
+  while (typeof result === 'string') {
+    try { result = JSON.parse(result); } catch(e) { break; }
+  }
+  return result;
 }
 
 async function kvSet(key, value) {
