@@ -1,35 +1,23 @@
-const BASE = () => process.env.KV_REST_API_URL;
-const TOKEN = () => process.env.KV_REST_API_TOKEN;
-
 async function kvGet(key) {
-  const res = await fetch(`${BASE()}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${TOKEN()}` }
+  const res = await fetch(`${process.env.KV_REST_API_URL}/pipeline`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify([['GET', key]])
   });
-  const text = await res.text();
-  console.log('RAW GET RESPONSE:', text);
-  const data = JSON.parse(text);
-  if (!data.result) return null;
-  let result = data.result;
-  while (typeof result === 'string') {
-    try { result = JSON.parse(result); } catch(e) { break; }
+  const data = await res.json();
+  const result = data?.[0]?.result;
+  if (!result) return null;
+  let parsed = result;
+  while (typeof parsed === 'string') {
+    try { parsed = JSON.parse(parsed); } catch(e) { break; }
   }
-  return result;
+  return parsed;
 }
 
 async function kvSet(key, value) {
-  const res = await fetch(`${BASE()}/set/${encodeURIComponent(key)}`, {
+  const res = await fetch(`${process.env.KV_REST_API_URL}/pipeline`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${TOKEN()}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(value)
-  });
-  const text = await res.text();
-  console.log('RAW SET RESPONSE:', text);
-  return res.ok;
-}
-
+    headers:
 export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
