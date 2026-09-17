@@ -1,17 +1,25 @@
 async function kvGet(key) {
-  const res = await fetch(`${process.env.KV_REST_API_URL}/get/${encodeURIComponent(key)}`, {
-    headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}` }
+  const res = await fetch(`${process.env.KV_REST_API_URL}/pipeline`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify([['GET', key]])
   });
   const data = await res.json();
-  if (!data.result) return null;
-  let result = data.result;
-  while (typeof result === 'string') {
-    try { result = JSON.parse(result); } catch(e) { break; }
+  const result = data?.[0]?.result;
+  if (!result) return null;
+  let parsed = result;
+  while (typeof parsed === 'string') {
+    try { parsed = JSON.parse(parsed); } catch(e) { break; }
   }
-  return result;
+  return parsed;
 }
+
 async function kvSet(key, value) {
-  const res = await fetch(`${process.env.KV_REST_API_URL}/set/${encodeURIComponent(key)}`, { method: 'POST', headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' }, body: JSON.stringify(JSON.stringify(value)) });
+  const res = await fetch(`${process.env.KV_REST_API_URL}/pipeline`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify([['SET', key, JSON.stringify(value)]])
+  });
   return res.ok;
 }
 export default async function handler(req, res) {
