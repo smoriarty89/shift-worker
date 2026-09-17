@@ -57,9 +57,10 @@ label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; margin
 .cal-day { aspect-ratio: 1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; background: #f0f0ee; color: #aaa; }
 .cal-day.free { background: #E1F5EE; color: #0F6E56; cursor: pointer; }
 .cal-day.free:active { background: #9FE1CB; }
-.cal-day.busy { background: #f0f0ee; color: #ccc; }
+.cal-day.busy { background: #f0f0ee; color: #ccc; cursor: pointer; }
+.cal-day.busy:active { background: #e0e0de; }
 .cal-day.extra-busy { background: #FAECE7; color: #993C1D; cursor: pointer; }
-.cal-day.empty { background: transparent; }
+.cal-day.empty { background: transparent; cursor: default; }
 .group-code-display { font-family: monospace; font-size: 15px; font-weight: 700; color: #1D9E75; background: #E1F5EE; padding: 3px 10px; border-radius: 8px; }
 </style>
 </head>
@@ -191,7 +192,7 @@ label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; margin
     Back
   </button>
   <div class="logo" style="margin-bottom:0.25rem">Any other plans?</div>
-  <div class="tagline">Tap any green day to mark it busy - appointments, events, anything else making you unavailable.</div>
+  <div class="tagline">Tap a green day to mark it busy. Tap a grey day to make yourself free.</div>
   <div id="extra-busy-cal"></div>
   <div id="extra-busy-added" style="display:none;margin-bottom:0.75rem">
     <div class="section-title">Also busy on</div>
@@ -225,6 +226,7 @@ let currentMember = null;
 let selectedFile = null;
 let extractedDays = null;
 let extraBusyDays = new Set();
+let extraFreeDays = new Set();
 let clarifyMode = false;
 const COLORS = ['#1D9E75','#534AB7','#D85A30','#185FA5','#BA7517','#993556','#639922'];
 
@@ -532,6 +534,7 @@ function showExtractedPreview(days, month) {
 
 function showExtraBusy() {
   extraBusyDays = new Set();
+  extraFreeDays = new Set();
   buildExtraBusyCal();
   showScreen('screen-extra-busy');
 }
@@ -539,12 +542,15 @@ function showExtraBusy() {
 function buildExtraBusyCal() {
   if (!extractedDays || !extractedDays.length) return;
   const freeDates = new Set(extractedDays);
+
+  // Get all days in the months covered
   const months = {};
   extractedDays.forEach(d => {
     const [y,m] = d.split('-');
     const key = y+'-'+m;
     if (!months[key]) months[key] = { year: parseInt(y), month: parseInt(m)-1 };
   });
+
   let html = '';
   Object.values(months).sort((a,b)=>a.year-b.year||a.month-b.month).forEach(({year,month}) => {
     const monthName = new Date(year,month,1).toLocaleDateString('en-AU',{month:'long',year:'numeric'});
@@ -558,9 +564,8 @@ function buildExtraBusyCal() {
       const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
       const isFree = freeDates.has(dateStr);
       const isExtraBusy = extraBusyDays.has(dateStr);
-      const cls = isExtraBusy?'extra-busy':isFree?'free':'busy';
-      const click = isFree?`onclick="toggleExtraBusy('${dateStr}',this)"`:'';
-      html += `<div class="cal-day ${cls}" data-date="${dateStr}" ${click}>${day}</div>`;
+      const cls = isExtraBusy ? 'extra-busy' : isFree ? 'free' : 'busy';
+      html += `<div class="cal-day ${cls}" data-date="${dateStr}" onclick="toggleDay('${dateStr}',this)">${day}</div>`;
     }
     html += '</div>';
   });
@@ -568,30 +573,57 @@ function buildExtraBusyCal() {
   updateExtraBusyList();
 }
 
-function toggleExtraBusy(dateStr, el) {
-  if (extraBusyDays.has(dateStr)) { extraBusyDays.delete(dateStr); el.className='cal-day free'; }
-  else { extraBusyDays.add(dateStr); el.className='cal-day extra-busy'; }
+function toggleDay(dateStr, el) {
+  const isFree = el.classList.contains('free');
+  const isBusy = el.classList.contains('busy');
+  const isExtraBusy = el.classList.contains('extra-busy');
+
+  if (isFree) {
+    // Mark as busy
+    extraBusyDays.add(dateStr);
+    extraFreeDays.delete(dateStr);
+    el.className = 'cal-day extra-busy';
+  } else if (isExtraBusy) {
+    // Was originally free, marked busy - restore to free
+    extraBusyDays.delete(dateStr);
+    el.className = 'cal-day free';
+  } else if (isBusy) {
+    // Was originally busy - make free
+    extraFreeDays.add(dateStr);
+    el.className = 'cal-day free';
+  }
   updateExtraBusyList();
 }
 
 function updateExtraBusyList() {
   const cont = document.getElementById('extra-busy-added');
   const list = document.getElementById('extra-busy-list');
-  if (extraBusyDays.size===0) { cont.style.display='none'; return; }
+  if (extraBusyDays.size === 0 && extraFreeDays.size === 0) { cont.style.display='none'; return; }
   cont.style.display='';
   list.innerHTML='';
   [...extraBusyDays].sort().forEach(d => {
     const dt = new Date(d+'T12:00:00');
     const tag = document.createElement('div');
     tag.style.cssText='background:#FAECE7;color:#993C1D;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500';
-    tag.textContent = dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+    tag.textContent = '🔴 ' + dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
+    list.appendChild(tag);
+  });
+  [...extraFreeDays].sort().forEach(d => {
+    const dt = new Date(d+'T12:00:00');
+    const tag = document.createElement('div');
+    tag.style.cssText='background:#E1F5EE;color:#0F6E56;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:500';
+    tag.textContent = '🟢 ' + dt.toLocaleDateString('en-AU',{day:'numeric',month:'short'});
     list.appendChild(tag);
   });
 }
 
 async function saveAvailability() {
   if (!extractedDays||!currentGroup||!currentMember) return;
-  const finalDays = extractedDays.filter(d=>!extraBusyDays.has(d));
+  // Start with extracted days, remove extra busy, add extra free
+  const finalDays = [
+    ...extractedDays.filter(d => !extraBusyDays.has(d)),
+    ...[...extraFreeDays]
+  ];
   const btn = document.getElementById('save-btn');
   btn.innerHTML = '<span class="spinner"></span>Saving...';
   btn.disabled = true;
@@ -605,7 +637,7 @@ async function saveAvailability() {
     showToast('Availability saved!');
     showScreen('screen-group');
     loadMembers();
-    selectedFile=null; extractedDays=null; extraBusyDays=new Set(); clarifyMode=false;
+    selectedFile=null; extractedDays=null; extraBusyDays=new Set(); extraFreeDays=new Set(); clarifyMode=false;
     document.getElementById('preview-container').style.display='none';
     document.getElementById('clarify-container').style.display='none';
     document.getElementById('extracted-preview').style.display='none';
