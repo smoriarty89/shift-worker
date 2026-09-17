@@ -4,9 +4,12 @@ async function kvGet(key) {
   });
   const data = await res.json();
   if (!data.result) return null;
-  try { return JSON.parse(data.result); } catch(e) { return data.result; }
+  try {
+    const first = JSON.parse(data.result);
+    if (typeof first === 'string') return JSON.parse(first);
+    return first;
+  } catch(e) { return null; }
 }
-
 async function kvSet(key, value) {
   const encoded = encodeURIComponent(JSON.stringify(value));
   const res = await fetch(`${process.env.KV_REST_API_URL}/set/${encodeURIComponent(key)}/${encoded}`, {
